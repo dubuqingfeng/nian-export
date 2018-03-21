@@ -2,7 +2,8 @@
 # main.py
 import argparse
 from nian import Nian
-exports = ["markdown", "mongodb", "json", "mysql", "html", "csv"]
+
+exports = ["markdown", "json", "html", "csv", "mongodb", "mysql"]
 
 if __name__ == '__main__':
     print('main start')
@@ -23,4 +24,9 @@ if __name__ == '__main__':
     nian.init_export_dir(args.uid)
     result = nian.get_dreams(page)
     nian.export_dreams(args.export, result)
+    for i in result:
+        dream = nian.get_dream_steps(i['id'])
+        nian.get_step_comments(dream)
+        nian.export_dream_steps()
+        print(dream)
     print(result)

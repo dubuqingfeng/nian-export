@@ -7,6 +7,7 @@ import os
 import requests
 
 import config
+from jinja2 import Environment, FileSystemLoader
 
 
 class Nian():
@@ -18,16 +19,23 @@ class Nian():
         self.shell = shell
 
     def init_export_dir(self, uid):
-        self.export_dic = 'exports/' + str(self.uid) + '/'
-        isExists = os.path.exists(self.export_dic)
-        if not isExists:
-            os.makedirs(self.export_dic)
+        self.export_dir = 'exports/' + str(self.uid) + '/'
+        self.image_dir = 'exports/images/' + str(self.uid) + '/'
+        self.image_dream_dir = 'exports/images/dreams/' + str(self.uid) + '/'
+        self.make_dir(self.export_dir)
+        self.make_dir(self.image_dir)
+        self.make_dir(self.image_dream_dir)
+
+    def make_dir(self, dirname):
+        is_exists = os.path.exists(dirname)
+        if not is_exists:
+            os.makedirs(dirname)
 
     def get_dreams(self, page=1):
         is_next = True
         result = []
         while is_next:
-            response = self._get(config.api_url['user'] + self.uid + config.api_url['get_dreams'], {
+            response = self._get(config.api_url['user'] + str(self.uid) + config.api_url['get_dreams'], {
                 'shell': self.shell,
                 'uid': self.uid,
                 'page': page
@@ -43,20 +51,35 @@ class Nian():
         images = []
         for i in result:
             images.append(i['image'])
-        self.download_img(images, 'dreams')
-        self.export(method, result, 'dreams', ['id', 'title', 'image', 'percent'])
+        self.download_img(images, 'http://img.nian.so/dream/', self.image_dream_dir)
+        self.export(method, result, 'dreams', template='dreams', csv_header=['id', 'title', 'image', 'percent'])
 
-    def _get(self, path, params=None, stream=False, timeout=None):
-        response = requests.get(self.base_url + path, params=params, stream=stream, timeout=timeout)
-        return response.json()
+    def get_dream_steps(self, dream_id, page=1):
+        is_next = True
+        result = []
+        while is_next:
+            response = self._get(config.api_url['get_dream_steps'] + str(dream_id), {
+                'shell': self.shell,
+                'uid': self.uid,
+                'sort': 'desc',
+                'page': page
+            })
+            dreams = response['data']['dreams']
+            if len(dreams) <= int(response['data']['perPage']):
+                is_next = False
+            page = page + 1
+            result.extend(dreams)
+        return result
 
-    def export(self, method, data, filename, csv_header=None):
+    def export(self, method, data, filename, template=None, csv_header=None):
         if method == 'csv':
-            self.export_csv(data, self.export_dic + filename + '.csv', csv_header)
+            self.export_csv(data, self.export_dir + filename + '.csv', csv_header)
         elif method == 'markdown':
-            self.export_markdown(data, self.export_dic + filename + '.csv')
+            self.export_jinja2(data, self.export_dir + filename + '.md', template=template + '.md')
         elif method == 'json':
-            self.export_json(data, self.export_dic + filename + '.json')
+            self.export_json(data, self.export_dir + filename + '.json')
+        elif method == 'html':
+            self.export_jinja2(data, self.export_dir + filename + '.html', template=template + '.html')
         else:
             pass
         pass
@@ -71,8 +94,32 @@ class Nian():
         with open(filename, 'w') as outfile:
             json.dump(data, outfile)
 
-    def download_img(self, images, dirname):
+    def download_img(self, images, img_base_url, dirname):
+        for image in images:
+            url = img_base_url + image + '!large'
+            if os.path.exists(dirname + image):
+                continue
+            r = requests.get(url, stream=True)
+            print(r.status_code)
+            if r.status_code == 200:
+                with open(dirname + image, 'wb') as f:
+                    for chunk in r.iter_content(1024):
+                        f.write(chunk)
+            else:
+                print(url + 'error:' + r.status_code)
+
+    def export_jinja2(self, data, filename, template):
+        env = Environment(loader=FileSystemLoader('templates', 'utf-8'))
+        env.get_template(template).stream(data=data, uid=self.uid).dump(filename)
+
+    def _get(self, path, params=None, stream=False, timeout=None):
+        response = requests.get(self.base_url + path, params=params, stream=stream, timeout=timeout)
+        return response.json()
+
+    def export_dream_steps(self):
         pass
 
-    def export_markdown(self, data, filename):
+    def get_step_comments(self, steps):
+        for i in steps:
+            print(i)
         pass
