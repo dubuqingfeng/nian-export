@@ -64,11 +64,11 @@ class Nian():
                 'sort': 'desc',
                 'page': page
             })
-            dreams = response['data']['dreams']
-            if len(dreams) <= int(response['data']['perPage']):
+            steps = response['data']['steps']
+            if len(steps) <= int(response['data']['perPage']):
                 is_next = False
             page = page + 1
-            result.extend(dreams)
+            result.extend(steps)
         return result
 
     def export(self, method, data, filename, template=None, csv_header=None):
@@ -119,7 +119,24 @@ class Nian():
     def export_dream_steps(self):
         pass
 
-    def get_step_comments(self, steps):
+    def get_comment_steps(self, steps):
         for i in steps:
+            i['comments'] = self.get_comments(i['id'])
             print(i)
-        pass
+
+    def get_comments(self, step_id, page=1):
+        is_next = True
+        result = []
+        while is_next:
+            response = self._get(config.api_url['steps'] + str(step_id) + config.api_url['get_comments'], {
+                'shell': self.shell,
+                'uid': self.uid,
+                'sort': 'asc',
+                'page': page
+            })
+            comments = response['data']['comments']
+            if len(comments) <= int(response['data']['perPage']):
+                is_next = False
+            page = page + 1
+            result.extend(comments)
+        return result
