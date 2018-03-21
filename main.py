@@ -26,7 +26,7 @@ if __name__ == '__main__':
     nian.export_dreams(args.export, result)
     for i in result:
         dream = nian.get_dream_steps(i['id'])
-        nian.get_step_comments(dream)
-        nian.export_dream_steps()
         print(dream)
+        nian.get_comment_steps(dream)
+        nian.export_dream_steps()
     print(result)

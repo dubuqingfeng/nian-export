@@ -11,7 +11,7 @@ from jinja2 import Environment, FileSystemLoader
 
 
 class Nian():
-    def __init__(self, base_url, ):
+    def __init__(self, base_url):
         self.base_url = base_url
 
     def init_user(self, uid, shell):
@@ -65,7 +65,9 @@ class Nian():
                 'page': page
             })
             steps = response['data']['steps']
-            if len(steps) <= int(response['data']['perPage']):
+            if 'dream' in response['data']:
+                print(response['data']['dream'])
+            if len(steps) <= 0:
                 is_next = False
             page = page + 1
             result.extend(steps)
@@ -82,7 +84,6 @@ class Nian():
             self.export_jinja2(data, self.export_dir + filename + '.html', template=template + '.html')
         else:
             pass
-        pass
 
     def export_csv(self, data, filename, csv_header):
         with open(filename, "w") as csvfile:
@@ -121,7 +122,7 @@ class Nian():
 
     def get_comment_steps(self, steps):
         for i in steps:
-            i['comments'] = self.get_comments(i['id'])
+            i['comments'] = self.get_comments(i['sid'])
             print(i)
 
     def get_comments(self, step_id, page=1):
